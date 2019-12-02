@@ -2,7 +2,11 @@
 
 **ppx\_match\_literals** is an OCaml extension written using [ppxlib](https://github.com/ocaml-ppx/ppxlib) 
 that allows for variables to be placed in `match` patterns and have them be interpreted as their 
-literal value.
+literal value. Consider the following simple example usage:
+```
+match%literals var_1 with
+| (_, [%lit var_2]) -> expr
+```
 
 ### How to use as literals
 
@@ -19,7 +23,7 @@ representing `[%lit id]` patterns with wildcard patterns. An extra `when` guard 
 wildcard that needs to be matched to a variable. To avoid namespace collision, wildcards are given 
 the name `ppx_match_literals_lit_*` where "*" is replace with the name of the variable to match.
 
-#### Currently supports recursing into the following patterns
+**Currently supports recursing into the following patterns**
 * tuple
 * construct
 * record
