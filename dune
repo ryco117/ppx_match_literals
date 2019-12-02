@@ -3,4 +3,4 @@
 	(libraries
 		core
 		fieldslib)
-	(preprocess (pps ppx_jane ppx_sexp_message ppx_sexp_conv match_str_ppx)))
+	(preprocess (pps ppx_match_literals)))

@@ -1,5 +1,5 @@
 (library
-	(name match_str_ppx)
+	(name ppx_match_literals)
 	(kind ppx_rewriter)
 	(libraries
 		ppxlib
