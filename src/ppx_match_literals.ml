@@ -1,6 +1,6 @@
 open Ppxlib
 
-let match_ext_name = "cpsc_literals"
+let match_ext_name = "literals"
 let case_ext_name = "lit"
 let sanitized_prefix = "ppx_match_literals_lit_"
 
