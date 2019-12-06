@@ -42,7 +42,8 @@ let rec append_name_to_list var_name lst =
   | hd::tl when hd = var_name -> hd::tl
   | hd::tl -> hd::(append_name_to_list var_name tl)
 
-(*Takes a pattern node and a list of variable names and returns a pair (node to replace with, updated var list) *)
+(*Takes a pattern node and a list of variable names and returns a pair (node to replace with, updated var list)
+ *Pattern types from https://caml.inria.fr/pub/docs/manual-ocaml/compilerlibref/Parsetree.html#TYPEpattern_desc*)
 let rec replace_literals loc var_list pattern_node =
   match pattern_node with
   (*Check if pattern is an extension [%lit ...] node*)
@@ -56,6 +57,12 @@ let rec replace_literals loc var_list pattern_node =
 
      (*Used our extension incorrectly*)
      | _ -> raise (Bad_match_var_syntax ("Invalid use of extension:" ^ match_ext_name ^ ":" ^ case_ext_name)))
+
+  (*Check if node is an alias*)
+  | {ppat_desc = Ppat_alias (alias_pattern, {txt = alias; loc = alias_loc}); _} ->
+    (match replace_literals loc var_list alias_pattern with
+     | (n, v_lst) -> ({ppat_desc = Ppat_alias (n, {txt = alias; loc = alias_loc}); 
+                       ppat_loc = loc; ppat_attributes = []}, v_lst))
 
   (*Check if pattern is a tuple*)
   | {ppat_desc = Ppat_tuple tuple_list; _} ->
@@ -73,6 +80,11 @@ let rec replace_literals loc var_list pattern_node =
      | (n, v_lst) -> ({ppat_desc = Ppat_construct ({txt = Lident cons_type; loc = cons_loc}, Some n);
                        ppat_loc = loc; ppat_attributes = []}, v_lst))
 
+  (*Check if node is a variant pattern*)
+  | {ppat_desc = Ppat_variant (label, Some pattern); _} -> (match replace_literals loc var_list pattern with
+    | (n, g) -> ({ppat_desc = Ppat_variant (label, Some n);
+                  ppat_loc = loc; ppat_attributes = []}, g))
+
   (*Check if node is a record pattern*)
   | {ppat_desc = Ppat_record (fields_list, closed_status); _} ->
     (match List.fold_left (fun (field_node_pairs, vars) (f, n) ->
@@ -80,20 +92,7 @@ let rec replace_literals loc var_list pattern_node =
            (List.append field_node_pairs [(f, new_n)], v_lst)) ([], var_list) fields_list with
      | (new_fields_list, new_var_list) ->
        ({ppat_desc = Ppat_record (new_fields_list, closed_status); ppat_loc = loc; ppat_attributes = []},
-       new_var_list))
-
-  (*Check if node is an alias*)
-  | {ppat_desc = Ppat_alias (alias_pattern, {txt = alias; loc = alias_loc}); _} ->
-    (match replace_literals loc var_list alias_pattern with
-     | (n, v_lst) -> ({ppat_desc = Ppat_alias (n, {txt = alias; loc = alias_loc}); 
-                       ppat_loc = loc; ppat_attributes = []}, v_lst))
-
-  (*Check if node is an "or" pattern
-   * TODO fix https://caml.inria.fr/pub/docs/manual-ocaml/comp.html#sec292 WARNING 9.5.3 *)
-  | {ppat_desc = Ppat_or (pattern1, pattern2); ppat_loc = or_loc; _} ->
-    (match replace_literals loc var_list pattern1 with
-    | (n1, v_lst1) -> (match replace_literals loc v_lst1 pattern2 with
-      | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2); ppat_loc = or_loc; ppat_attributes = []}, v_lst2)))
+        new_var_list))
 
   (*Check if node is an array -- TODO: DOESN'T WORK!!! 
    * I think arrays are being populated before matching is able to maniplulate AST*)
@@ -103,6 +102,30 @@ let rec replace_literals loc var_list pattern_node =
     let guards_list = List.map (function (_, g) -> g) patterns_list in
     ({ppat_desc = Ppat_array nodes_list; ppat_loc = loc; ppat_attributes = []},
      fold_guards loc guard guards_list)*)
+
+  (*Check if node is an "or" pattern
+   * TODO fix https://caml.inria.fr/pub/docs/manual-ocaml/comp.html#sec292 WARNING 9.5.3 *)
+  | {ppat_desc = Ppat_or (pattern1, pattern2); ppat_loc = or_loc; _} ->
+    (match replace_literals loc var_list pattern1 with
+    | (n1, v_lst1) -> (match replace_literals loc v_lst1 pattern2 with
+      | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2); ppat_loc = or_loc; ppat_attributes = []}, v_lst2)))
+
+  (*Check if node is a type constraint*)
+  | {ppat_desc = Ppat_constraint (pattern, node_core_type); _} -> (match replace_literals loc var_list pattern with
+      | (n, g) -> ({ppat_desc = Ppat_constraint (n, node_core_type);
+                    ppat_loc = loc; ppat_attributes = []}, g))
+
+  (*Check if node is a lazy pattern*)
+  | {ppat_desc = Ppat_lazy pattern; _} -> (match replace_literals loc var_list pattern with
+      | (n, g) -> ({ppat_desc = Ppat_lazy n; ppat_loc = loc; ppat_attributes = []}, g))
+
+  (*Check if node is an exception case*)
+  | {ppat_desc = Ppat_exception pattern; _} -> (match replace_literals loc var_list pattern with
+      | (n, g) -> ({ppat_desc = Ppat_exception n; ppat_loc = loc; ppat_attributes = []}, g))
+
+  (*Check if is a module open pattern*)
+  | {ppat_desc = Ppat_open (identity, pattern); _} -> (match replace_literals loc var_list pattern with
+      | (n, g) -> ({ppat_desc = Ppat_open (identity, n); ppat_loc = loc; ppat_attributes = []}, g))
 
   (*Some other node, don't modify or recurse*)
   | _ -> (pattern_node, var_list)
