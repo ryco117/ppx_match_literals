@@ -8,11 +8,13 @@ exception Bad_match_var_syntax of string;;
 
 (*Map string to an identifier AST node*)
 let create_identifier loc var_name = 
-  {pexp_desc = Pexp_ident {txt = Lident var_name; loc = loc}; pexp_loc = loc; pexp_attributes = []}
+  {pexp_desc = Pexp_ident {txt = Lident var_name; loc = loc};
+   pexp_loc = loc; pexp_loc_stack = []; pexp_attributes = []}
 
 (*Map string to an identifier pattern (ie. a wildcard node) *)
 let create_identifier_pattern loc var_name = 
-  {ppat_desc = Ppat_var {txt = var_name; loc = loc}; ppat_loc = loc; ppat_attributes = []}
+  {ppat_desc = Ppat_var {txt = var_name; loc = loc};
+   ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}
 
 (*Append an equivalency check to an existing guard based on the given var_name and a sanitized wildcard variable*)
 let create_guard loc old_guard var_name sanitized_wildcard =
@@ -62,7 +64,7 @@ let rec replace_literals loc var_list pattern_node =
   | {ppat_desc = Ppat_alias (alias_pattern, {txt = alias; loc = alias_loc}); _} ->
     (match replace_literals loc var_list alias_pattern with
      | (n, v_lst) -> ({ppat_desc = Ppat_alias (n, {txt = alias; loc = alias_loc}); 
-                       ppat_loc = loc; ppat_attributes = []}, v_lst))
+                       ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, v_lst))
 
   (*Check if pattern is a tuple*)
   | {ppat_desc = Ppat_tuple tuple_list; _} ->
@@ -72,18 +74,19 @@ let rec replace_literals loc var_list pattern_node =
           | (n, new_v_lst) -> (List.append n_lst [n], new_v_lst))) ([], var_list) tuple_list with
      (*Retrieved ordered list of nodes to replace and vars needed*)
      | (nodes_list, new_var_list) ->
-       ({ppat_desc = Ppat_tuple nodes_list; ppat_loc = loc; ppat_attributes = []}, new_var_list))
+       ({ppat_desc = Ppat_tuple nodes_list;
+         ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, new_var_list))
 
   (*Check if node is a construct*)
   | {ppat_desc = Ppat_construct ({txt = Lident cons_type; loc = cons_loc}, Some cons_pattern); _} ->
     (match replace_literals loc var_list cons_pattern with
      | (n, v_lst) -> ({ppat_desc = Ppat_construct ({txt = Lident cons_type; loc = cons_loc}, Some n);
-                       ppat_loc = loc; ppat_attributes = []}, v_lst))
+                       ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, v_lst))
 
   (*Check if node is a variant pattern*)
   | {ppat_desc = Ppat_variant (label, Some pattern); _} -> (match replace_literals loc var_list pattern with
     | (n, g) -> ({ppat_desc = Ppat_variant (label, Some n);
-                  ppat_loc = loc; ppat_attributes = []}, g))
+                  ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if node is a record pattern*)
   | {ppat_desc = Ppat_record (fields_list, closed_status); _} ->
@@ -91,7 +94,8 @@ let rec replace_literals loc var_list pattern_node =
          match replace_literals loc vars n with (new_n, v_lst) ->
            (List.append field_node_pairs [(f, new_n)], v_lst)) ([], var_list) fields_list with
      | (new_fields_list, new_var_list) ->
-       ({ppat_desc = Ppat_record (new_fields_list, closed_status); ppat_loc = loc; ppat_attributes = []},
+       ({ppat_desc = Ppat_record (new_fields_list, closed_status);
+         ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []},
         new_var_list))
 
   (*Check if node is an array -- TODO: DOESN'T WORK!!! 
@@ -108,24 +112,28 @@ let rec replace_literals loc var_list pattern_node =
   | {ppat_desc = Ppat_or (pattern1, pattern2); ppat_loc = or_loc; _} ->
     (match replace_literals loc var_list pattern1 with
     | (n1, v_lst1) -> (match replace_literals loc v_lst1 pattern2 with
-      | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2); ppat_loc = or_loc; ppat_attributes = []}, v_lst2)))
+      | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2);
+                          ppat_loc = or_loc; ppat_loc_stack = []; ppat_attributes = []}, v_lst2)))
 
   (*Check if node is a type constraint*)
   | {ppat_desc = Ppat_constraint (pattern, node_core_type); _} -> (match replace_literals loc var_list pattern with
       | (n, g) -> ({ppat_desc = Ppat_constraint (n, node_core_type);
-                    ppat_loc = loc; ppat_attributes = []}, g))
+                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if node is a lazy pattern*)
   | {ppat_desc = Ppat_lazy pattern; _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_lazy n; ppat_loc = loc; ppat_attributes = []}, g))
+      | (n, g) -> ({ppat_desc = Ppat_lazy n;
+                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if node is an exception case*)
   | {ppat_desc = Ppat_exception pattern; _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_exception n; ppat_loc = loc; ppat_attributes = []}, g))
+      | (n, g) -> ({ppat_desc = Ppat_exception n;
+                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if is a module open pattern*)
   | {ppat_desc = Ppat_open (identity, pattern); _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_open (identity, n); ppat_loc = loc; ppat_attributes = []}, g))
+      | (n, g) -> ({ppat_desc = Ppat_open (identity, n);
+                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Some other node, don't modify or recurse*)
   | _ -> (pattern_node, var_list)
@@ -149,13 +157,14 @@ let expand ~loc ~path:_ expr =
   match expr with 
   (*Check if used the extension correctly*)
   | {pexp_desc = Pexp_match ({pexp_desc = match_description; pexp_loc = match_loc;
-                              pexp_attributes = match_attributes},
+                              pexp_attributes = match_attributes; _},
                              case_list); pexp_attributes = ext_attributes; _} ->
     (*Replace extension with a match expression, where every case statement is mapped*)
-    {pexp_desc = Pexp_match ({pexp_desc = match_description; pexp_loc = match_loc;
+    {pexp_desc = Pexp_match ({pexp_desc = match_description;
+                              pexp_loc = match_loc; pexp_loc_stack = [];
                               pexp_attributes = match_attributes},
                              List.map (case_map loc) case_list); 
-     pexp_loc = loc; pexp_attributes = ext_attributes}
+     pexp_loc = loc; pexp_loc_stack = []; pexp_attributes = ext_attributes}
 
     (*Incorrect syntax for match extension*)
   | _ -> raise (Bad_match_var_syntax ("Invalid use of extension:" ^ match_ext_name))

@@ -1,5 +1,3 @@
-open! Core
-
 let () = print_endline ( string_of_int (
   let str = "hello" in
   let hello = "hello" in
