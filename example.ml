@@ -26,26 +26,26 @@ let () = print_endline ( string_of_int (
 
 
 let () = print_endline ( string_of_int (
-    let hello_hi = ("hello", "hi") in
-    let hi = "hi" in
-    let one = 1 in
-    match%literals (1, ("hello", "hi")) with
-    | ([%lit one], [%lit hello_hi]) as thing when 1 = 2 -> (match thing with (x, _) -> x)
-    | ([%lit one], [%lit hello_hi]) when true && 1 = 2 -> 2
-    | (1, ("a", [%lit hi])) | (1, ("hello", [%lit hi]))-> 3
-    | _ -> 4
+  let hello_hi = ("hello", "hi") in
+  let hi = "hi" in
+  let one = 1 in
+  match%literals (1, ("hello", "hi")) with
+  | ([%lit one], [%lit hello_hi]) as thing when 1 = 2 -> (match thing with (x, _) -> x)
+  | ([%lit one], [%lit hello_hi]) when true && 1 = 2 -> 2
+  | (1, ("a", [%lit hi])) | (1, ("hello", [%lit hi]))-> 3
+  | _ -> 4
 ))
 
 
 let () = print_endline ( string_of_int (
-    let one = 1 in
-    let three = 3 in
-    let four = 4 in
-    let hello = "hello" in
-    match%literals ([1;2;3;4], "hello", ("hello", 1)) with
-    | ([%lit one]::_::[%lit three]::[%lit four]::[], "hello", ([%lit hello], 1)) when false && 1 = 1 -> 1 
-    | ([%lit one]::_::[%lit three]::[%lit four]::[], "hello", ([%lit hello], 1)) when true && 1 = 1 -> 2 
-    | _ -> 3
+  let one = 1 in
+  let three = 3 in
+  let four = 4 in
+  let hello = "hello" in
+  match%literals ([1;2;3;4], "hello", ("hello", 1)) with
+  | ([%lit one]::_::[%lit three]::[%lit four]::[], "hello", ([%lit hello], 1)) when false && 1 = 1 -> 1 
+  | ([%lit one]::_::[%lit three]::[%lit four]::[], "hello", ([%lit hello], 1)) when true && 1 = 1 -> 2 
+  | _ -> 3
 ))
 
 type alpha_eg = {
@@ -76,4 +76,4 @@ let () = print_endline ( string_of_int (
   match [| "hello" ; "hi" |] with 
   | [| [%lit hello] ; "hi" |] -> 1
   | _ -> 2
-))*)
+  ))*)

@@ -26,11 +26,11 @@ let create_guard loc old_guard var_name sanitized_wildcard =
 (*Given an initial guard and a list of guards, produce a guard equivalent to the "&&" operator applied between them*)
 let fold_guards loc initial_guard guards_list =
   List.fold_left (fun acc_guard new_guard ->
-      match (acc_guard, new_guard) with
-      | (Some a, Some n) -> Some [%expr [%e a] && [%e n]]
-      | (Some a, _) -> Some a
-      | (_, Some n) -> Some n
-      | _ -> None) initial_guard guards_list
+    match (acc_guard, new_guard) with
+    | (Some a, Some n) -> Some [%expr [%e a] && [%e n]]
+    | (Some a, _) -> Some a
+    | (_, Some n) -> Some n
+    | _ -> None) initial_guard guards_list
 
 (*Given an initial list and a list of lists, append all lists together*)
 let fold_var_lists init_list var_lists =
@@ -51,7 +51,7 @@ let rec replace_literals loc var_list pattern_node =
   (*Check if pattern is an extension [%lit ...] node*)
   | {ppat_desc = Ppat_extension ({txt = "lit"; _}, pstr); _} ->
     (match pstr with 
-    (*Check if used our extension correctly*)
+     (*Check if used our extension correctly*)
      | PStr [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_ident {txt = Lident var_name; _}; _}, _); _}] ->
        (*Replace given pattern with a wildcard and append new guard*)
        let sanitized_var_name = sanitized_prefix ^ var_name (*string_of_int (Random.bits ())*) in
@@ -70,8 +70,8 @@ let rec replace_literals loc var_list pattern_node =
   | {ppat_desc = Ppat_tuple tuple_list; _} ->
     (*Retrieve ordered list of nodes to replace and vars needed by folding nodes list*)
     (match List.fold_left (fun (n_lst, v_lst) node ->
-         (match replace_literals loc v_lst node with
-          | (n, new_v_lst) -> (List.append n_lst [n], new_v_lst))) ([], var_list) tuple_list with
+       (match replace_literals loc v_lst node with
+        | (n, new_v_lst) -> (List.append n_lst [n], new_v_lst))) ([], var_list) tuple_list with
      (*Retrieved ordered list of nodes to replace and vars needed*)
      | (nodes_list, new_var_list) ->
        ({ppat_desc = Ppat_tuple nodes_list;
@@ -91,8 +91,8 @@ let rec replace_literals loc var_list pattern_node =
   (*Check if node is a record pattern*)
   | {ppat_desc = Ppat_record (fields_list, closed_status); _} ->
     (match List.fold_left (fun (field_node_pairs, vars) (f, n) ->
-         match replace_literals loc vars n with (new_n, v_lst) ->
-           (List.append field_node_pairs [(f, new_n)], v_lst)) ([], var_list) fields_list with
+       match replace_literals loc vars n with (new_n, v_lst) ->
+         (List.append field_node_pairs [(f, new_n)], v_lst)) ([], var_list) fields_list with
      | (new_fields_list, new_var_list) ->
        ({ppat_desc = Ppat_record (new_fields_list, closed_status);
          ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []},
@@ -105,35 +105,35 @@ let rec replace_literals loc var_list pattern_node =
     let _nodes_list = List.map (function (n, _) -> n) patterns_list in
     let guards_list = List.map (function (_, g) -> g) patterns_list in
     ({ppat_desc = Ppat_array nodes_list; ppat_loc = loc; ppat_attributes = []},
-     fold_guards loc guard guards_list)*)
+    fold_guards loc guard guards_list)*)
 
   (*Check if node is an "or" pattern
    * TODO fix https://caml.inria.fr/pub/docs/manual-ocaml/comp.html#sec292 WARNING 9.5.3 *)
   | {ppat_desc = Ppat_or (pattern1, pattern2); ppat_loc = or_loc; _} ->
     (match replace_literals loc var_list pattern1 with
-    | (n1, v_lst1) -> (match replace_literals loc v_lst1 pattern2 with
-      | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2);
-                          ppat_loc = or_loc; ppat_loc_stack = []; ppat_attributes = []}, v_lst2)))
+     | (n1, v_lst1) -> (match replace_literals loc v_lst1 pattern2 with
+       | (n2, v_lst2) -> ({ppat_desc = Ppat_or (n1, n2);
+                           ppat_loc = or_loc; ppat_loc_stack = []; ppat_attributes = []}, v_lst2)))
 
   (*Check if node is a type constraint*)
   | {ppat_desc = Ppat_constraint (pattern, node_core_type); _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_constraint (n, node_core_type);
-                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
+    | (n, g) -> ({ppat_desc = Ppat_constraint (n, node_core_type);
+                  ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if node is a lazy pattern*)
   | {ppat_desc = Ppat_lazy pattern; _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_lazy n;
-                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
+    | (n, g) -> ({ppat_desc = Ppat_lazy n;
+                  ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if node is an exception case*)
   | {ppat_desc = Ppat_exception pattern; _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_exception n;
-                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
+    | (n, g) -> ({ppat_desc = Ppat_exception n;
+                  ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Check if is a module open pattern*)
   | {ppat_desc = Ppat_open (identity, pattern); _} -> (match replace_literals loc var_list pattern with
-      | (n, g) -> ({ppat_desc = Ppat_open (identity, n);
-                    ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
+    | (n, g) -> ({ppat_desc = Ppat_open (identity, n);
+                  ppat_loc = loc; ppat_loc_stack = []; ppat_attributes = []}, g))
 
   (*Some other node, don't modify or recurse*)
   | _ -> (pattern_node, var_list)
@@ -150,7 +150,7 @@ let case_map loc case =
       {pc_lhs = new_case;
        (*Replace old guard with accumulation of all guards needed for literals and original*)
        pc_guard = List.fold_left (fun acc_guard var_name ->
-           Some (create_guard loc acc_guard var_name (sanitized_prefix ^ var_name))) guard var_list;
+         Some (create_guard loc acc_guard var_name (sanitized_prefix ^ var_name))) guard var_list;
        pc_rhs = expression}
 
 let expand ~loc ~path:_ expr =
@@ -166,7 +166,7 @@ let expand ~loc ~path:_ expr =
                              List.map (case_map loc) case_list); 
      pexp_loc = loc; pexp_loc_stack = []; pexp_attributes = ext_attributes}
 
-    (*Incorrect syntax for match extension*)
+  (*Incorrect syntax for match extension*)
   | _ -> raise (Bad_match_var_syntax ("Invalid use of extension:" ^ match_ext_name))
 
 (*Create extension using ppxlib*)
@@ -180,4 +180,4 @@ let extension =
 (*Define and register transformation rule for our custom match extension*)
 let rule = Context_free.Rule.extension extension
 let () =
-    Driver.register_transformation ~rules:[rule] (match_ext_name ^ "_transformation")
+  Driver.register_transformation ~rules:[rule] (match_ext_name ^ "_transformation")

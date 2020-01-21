@@ -1,6 +1,3 @@
 (executable
 	(name example)
-	(libraries
-		core
-		fieldslib)
 	(preprocess (pps ppx_match_literals)))

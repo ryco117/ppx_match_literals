@@ -1,0 +1,22 @@
+opam-version: "2.0"
+maintainer: "ryco117@gmail.com"
+authors: ["Ryan Andersen"]
+homepage: "https://github.com/ryco117/ppx_match_literals"
+bug-reports: "https://github.com/ryco117/ppx_match_literals"
+dev-repo: "git+https://github.com/ryco117/ppx_match_literals.git"
+doc: "https://github.com/ryco117/ppx_match_literals"
+license: "GPLv3"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+]
+run-test: [
+  ["dune" "runtest" "-p" name "-j" jobs] { ocaml:version >= "4.09.0" }
+]
+depends: [
+  "ppxlib"                   {>= "0.10.0"}
+]
+synopsis: "A PPX extension for conveniently matching cases with literal variables"
+description: """
+ppx_match_literals is an OCaml extension written using ppxlib that allows for variables to be placed in match patterns and have them be interpreted as their literal value.
+"""

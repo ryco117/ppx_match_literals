@@ -1,9 +1,8 @@
 (library
 	(name ppx_match_literals)
+	(public_name ppx_match_literals)
 	(kind ppx_rewriter)
 	(libraries
 		ppxlib
-		core
-		fieldslib
 		)
 	(preprocess (pps ppxlib.metaquot)))
